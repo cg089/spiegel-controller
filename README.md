@@ -1,6 +1,9 @@
 # Spiegel klein (Touch/Relay/RTSP Controller) – FastAPI + MQTT + Home Assistant
 
-Dieses Projekt steuert einen kleinen PC mit Touchscreen („Spiegel klein“):
+Dieses Projekt steuert einen umgebauten VAHA Fitnessspiegel.
+Das Backlight ist mit einem USB-Relay verbunden, um den Bildschirm schnell an und auszuschalten.
+Ist der Bildschirm aus (also das Relais aus), soll auf dem Panel nichts angezeigt werden (Schwarz), damit sich nichts einbrennt.
+
 
 - USB-Relay (z. B. Display/Power/Backlight)
 - schwarzes Overlay als „Screen off“-Zustand (mpv)
