@@ -81,6 +81,11 @@ class MqttBridge:
         except Exception:
             pass
 
+    def publish_bytes(self, topic: str, payload: bytes, *, retain: bool = False, qos: int = 0):
+        if not self._client or not self._connected:
+            return
+        self._client.publish(topic, payload=payload, qos=qos, retain=retain)
+
     def publish_state_now(self):
         if self._client and self._connected:
             self._publish_state()
@@ -167,6 +172,9 @@ class MqttBridge:
             ("load1", "Load 1m", "{{ value_json.system.load1 }}", None),
             ("mem_used_pct", "RAM used", "{{ value_json.system.mem_used_pct }}", "%"),
             ("disk_used_pct", "Disk used", "{{ value_json.system.disk_used_pct }}", "%"),
+            ("cpu_usage_pct", "CPU usage", "{{ value_json.system.cpu_usage_pct }}", "%"),
+            ("ipv4", "IPv4", "{{ value_json.system.ipv4 }}", None),
+            ("ips_csv", "IPv4 list", "{{ value_json.system.ips_csv }}", None),
         ]
 
         for key, name, tpl, unit in sensors:
@@ -338,5 +346,36 @@ class MqttBridge:
             retain=self.retain_discovery,
             qos=1,
         )
+
+        image_topic = f"{self.base}/screen/image"
+
+        # MQTT Image entity (raw JPEG bytes on image_topic) :contentReference[oaicite:1]{index=1}
+        self._publish(
+            dtopic("image", "screen_image"),
+            {
+                **common,
+                "name": "Screen snapshot",
+                "unique_id": f"{self.device_id}_screen_image",
+                "image_topic": image_topic,
+                "content_type": "image/jpeg",
+            },
+            retain=self.retain_discovery,
+            qos=1,
+        )
+
+        # Button: Screenshot aufnehmen
+        self._publish(
+            dtopic("button", "screenshot_btn"),
+            {
+                **common,
+                "name": "Screenshot",
+                "unique_id": f"{self.device_id}_screenshot_btn",
+                "command_topic": f"{self.cmd_base}/screenshot",
+                "payload_press": "PRESS",
+            },
+            retain=self.retain_discovery,
+            qos=1,
+        )
+
 
         self.log.add("MQTT: HA discovery published")

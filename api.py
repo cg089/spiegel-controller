@@ -9,6 +9,7 @@ import json
 import socket
 import shutil
 import subprocess
+from typing import Optional, Tuple
 
 import config
 from event_log import EventLog
@@ -70,6 +71,38 @@ class RelayAction(BaseModel):
     state: str  # on/off
 
 # ---------- Systemdaten (ohne extra deps) ----------
+
+_cpu_prev: Optional[Tuple[int, int]] = None  # (total, idle)
+
+def cpu_usage_pct() -> float:
+    """CPU usage % via /proc/stat delta."""
+    global _cpu_prev
+    try:
+        with open("/proc/stat", "r") as f:
+            line = f.readline().strip()
+        parts = line.split()
+        if parts[0] != "cpu":
+            return 0.0
+        nums = list(map(int, parts[1:]))
+        idle = nums[3] + (nums[4] if len(nums) > 4 else 0)   # idle + iowait
+        total = sum(nums)
+
+        if _cpu_prev is None:
+            _cpu_prev = (total, idle)
+            return 0.0
+
+        prev_total, prev_idle = _cpu_prev
+        _cpu_prev = (total, idle)
+
+        dt = total - prev_total
+        di = idle - prev_idle
+        if dt <= 0:
+            return 0.0
+        usage = (dt - di) / dt * 100.0
+        return round(max(0.0, min(100.0, usage)), 1)
+    except Exception:
+        return 0.0
+
 
 def _read_cpu_temp_c():
     # Versucht typische Linux Thermal Zone
@@ -151,15 +184,48 @@ def _read_ips():
                 ips.append(ip)
     return ips
 
+def take_screenshot_jpeg() -> Optional[bytes]:
+    """
+    Screenshot vom Root-Window. Voraussetzung: X11 + ffmpeg installiert.
+    """
+    env = display.env()  # nutzt DISPLAY/XAUTHORITY aus deinem DisplayController
+    tmp = "/tmp/spiegel_screen.jpg"
+    try:
+        # ffmpeg x11grab -> 1 Frame JPEG
+        # -y überschreibt, -loglevel error hält's ruhig
+        cmd = [
+            "ffmpeg",
+            "-loglevel", "error",
+            "-y",
+            "-f", "x11grab",
+            "-i", f"{env.get('DISPLAY', ':0')}.0",
+            "-frames:v", "1",
+            "-q:v", "3",
+            tmp
+        ]
+        subprocess.run(cmd, env={**os.environ, **env}, check=True, timeout=5)
+
+        with open(tmp, "rb") as f:
+            return f.read()
+    except Exception as e:
+        log.add(f"Screenshot error: {e}")
+        return None
+
+
 def system_stats():
+    ips = _read_ips()
+    ipv4 = ips[0] if ips else ""
     return {
         "hostname": hostname,
         "uptime_seconds": _read_uptime_seconds(),
         "cpu_temp_c": _read_cpu_temp_c(),
+        "cpu_usage_pct": cpu_usage_pct(),
         "load1": _read_load1(),
         "mem_used_pct": _read_mem_used_pct(),
         "disk_used_pct": _read_disk_used_pct("/"),
         "ips": _read_ips(),
+        "ipv4": ipv4,                       # <-- neu (erste “brauchbare” IPv4)
+        "ips_csv": ", ".join(ips),          # <-- optional (alle)
     }
 
 def display_remaining_seconds():
@@ -323,6 +389,15 @@ def command_handler(topic: str, payload: str):
             touch.unlock()
         else:
             touch.lock()
+
+    elif cmd == "screenshot":
+        if p.upper() == "PRESS":
+            jpeg = take_screenshot_jpeg()
+            if jpeg:
+                topic = f"{config.MQTT_BASE_TOPIC}/screen/image"
+                mqtt_bridge.publish_bytes(topic, jpeg, retain=False, qos=0)
+                log.add("MQTT: screenshot published")
+
 
 
 mqtt_bridge = MqttBridge(config, log, state_provider=state_provider, command_handler=command_handler)
