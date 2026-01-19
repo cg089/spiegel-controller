@@ -46,7 +46,7 @@ Dieses Projekt steuert einen kleinen PC mit Touchscreen („Spiegel klein“):
 
 ## Projektstruktur (Beispiel)
 
-```text
+```
 .
 ├── api.py
 ├── config.py
@@ -58,34 +58,30 @@ Dieses Projekt steuert einen kleinen PC mit Touchscreen („Spiegel klein“):
 │   └── relay-api.service.template
 └── scripts/
     └── install.sh
+```
 
-
-Voraussetzungen (System)
+## Voraussetzungen (System)
 
 Debian/Ubuntu mit X11 (kein Wayland, oder XWayland sauber konfiguriert)
-
 mpv (Overlay & RTSP)
-
 ffmpeg (Screenshot via x11grab)
-
 Python 3 + venv
 
 Zugriff auf:
 
 /dev/ttyUSB* (Relay)
-
 /dev/input/... (Touch)
 
-Systempakete installieren
+## Systempakete installieren
 sudo apt-get update
 sudo apt-get install -y git python3-venv python3-pip mpv ffmpeg
 
-Installation (neu aufgesetztes OS)
-1) Repo klonen
-git clone https://github.com/<DEINUSER>/<DEINREPO>.git
-cd <DEINREPO>
+## Installation (neu aufgesetztes OS)
+### 1) Repo klonen
+git clone https://github.com/cg089/spiegel-controller.git
+cd spiegel-controller
 
-2) Konfiguration anlegen
+### 2) Konfiguration anlegen
 
 .env aus Vorlage kopieren:
 
@@ -94,24 +90,19 @@ nano .env
 
 
 Wichtige Felder:
-
 MQTT_HOST, MQTT_USER, MQTT_PASSWORD
-
 DISPLAY (typisch :0)
-
 XAUTHORITY (oft /home/<user>/.Xauthority, je nach Setup)
-
 DEVICE_RELAY (typisch /dev/ttyUSB0)
-
 TOUCH_DEVICE_PATH (udev-stabil, z. B. /dev/input/touchscreen)
 
-3) Rechte / Gruppen (Touch & Serial)
+### 3) Rechte / Gruppen (Touch & Serial)
 sudo usermod -aG input,dialout,video $(id -un)
 
 
 Danach neu einloggen (oder reboot), damit Gruppen greifen.
 
-4) Install-Skript ausführen
+### 4) Install-Skript ausführen
 chmod +x scripts/install.sh
 ./scripts/install.sh
 
@@ -119,46 +110,37 @@ chmod +x scripts/install.sh
 Das Script:
 
 erstellt venv im Repo (.venv/)
-
 installiert Python Dependencies
-
 erzeugt systemd Unit aus Template (mit den ermittelten Pfaden)
-
 startet den Service
 
-Service
-Status
+## Service
+### Status
 systemctl status relay-api.service --no-pager
 
-Neustart
+### Neustart
 sudo systemctl restart relay-api.service
 
-Logs
+### Logs
 journalctl -u relay-api.service -f
 
-Web UI
+## Web UI
 
 Home: http://<ip-des-geraets>:8000/
-
 Debug: http://<ip-des-geraets>:8000/debug
-
 RTSP Log: http://<ip-des-geraets>:8000/rtsp/log
 
-MQTT / Home Assistant
+## MQTT / Home Assistant
 Base Topic
 
 Der Hostname wird automatisch verwendet:
 
 State: kiosk/<hostname>/state
-
 Availability: kiosk/<hostname>/availability
-
 Commands: kiosk/<hostname>/cmd/...
 
 Beispiel (Hostname: spiegel-schlafzimmer):
-
 kiosk/spiegel-schlafzimmer/state
-
 kiosk/spiegel-schlafzimmer/cmd/rtsp/start
 
 RTSP per MQTT starten (direkt, JSON)
@@ -193,30 +175,21 @@ Reboot/Shutdown
 Diese Aktionen sind absichtlich per .env abgesichert:
 
 ALLOW_POWER_ACTIONS=0 → Buttons/Endpoints existieren, führen aber nicht aus
-
 ALLOW_POWER_ACTIONS=1 → Reboot/Shutdown wird ausgeführt
 
-Troubleshooting
+## Troubleshooting
 Touch lockt nicht / Touch geht trotzdem ans OS
 
 Gruppen prüfen: groups
-
 User muss in input sein → danach neu einloggen/reboot
-
 Device-Pfad prüfen: ls -l /dev/input/touchscreen
-
 RTSP startet nicht aus dem Service, aber per SSH schon
-
 DISPLAY/XAUTHORITY in .env prüfen
-
 mpv braucht Zugriff auf die X11 Session (korrekte Xauthority)
 
 RTSP Log prüfen: http://<ip>:8000/rtsp/log oder Datei aus .env (RTSP_LOG_PATH)
-
 MQTT Entities erscheinen nicht
-
 MQTT Host/User/Pass prüfen
-
 HA MQTT Integration aktiv?
 
 Discovery Prefix korrekt (MQTT_DISCOVERY_PREFIX, default homeassistant)
