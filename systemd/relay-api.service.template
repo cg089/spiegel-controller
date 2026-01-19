@@ -1,0 +1,19 @@
+[Unit]
+Description=Spiegel klein API
+After=network.target
+
+[Service]
+Type=simple
+User={{USER}}
+WorkingDirectory={{APP_DIR}}
+EnvironmentFile={{APP_DIR}}/.env
+ExecStart={{VENV_DIR}}/bin/uvicorn api:app --host 0.0.0.0 --port 8000
+Restart=always
+RestartSec=2
+
+# Für evdev/ttyUSB meistens nötig:
+# SupplementaryGroups=input dialout video
+
+[Install]
+WantedBy=multi-user.target
+
