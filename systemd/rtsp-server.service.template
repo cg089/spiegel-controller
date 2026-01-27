@@ -1,0 +1,23 @@
+[Unit]
+Description=Spiegel klein RTSP Server (rtsp_server.py)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User={{USER}}
+WorkingDirectory={{APP_DIR}}
+EnvironmentFile={{APP_DIR}}/.env
+
+# Falls rtsp_server.py X11 nicht braucht: kein DISPLAY/XAUTHORITY nötig.
+# Wenn doch: dann stehen DISPLAY/XAUTHORITY bereits in .env und werden übernommen.
+
+ExecStart={{VENV_DIR}}/bin/python -u {{APP_DIR}}/rtsp_server.py
+Restart=always
+RestartSec=2
+
+# Optional, falls du Zugriff auf Kamera-Devices brauchst:
+# SupplementaryGroups=video
+
+[Install]
+WantedBy=multi-user.target

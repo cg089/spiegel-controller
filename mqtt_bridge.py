@@ -217,6 +217,16 @@ class MqttBridge:
             "{{ 'ON' if value_json.overlay_black else 'OFF' }}",
         )
 
+        # RTSP
+
+        make_switch(
+            "video_streaming_sw",
+            "Video Streaming",
+            "streaming",
+            "{{ 'ON' if value_json.streaming_active else 'OFF' }}",
+        )
+
+
         # Touch: ON = unlock (also NICHT locked), OFF = lock
         make_switch(
             "touch_sw",
