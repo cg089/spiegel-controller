@@ -254,8 +254,7 @@ def camera_snapshot_jpeg(rtsp_url: str = LOCAL_CAMERA_RTSP_URL) -> Optional[byte
 _streaming_lock = threading.Lock()
 _last_streaming_cmd_ts = 0.0
 
-def _run(cmd: list[str], *, timeout: int = 5) -> tuple[int, str, str]:
-    """Run command, return (rc, stdout, stderr)."""
+def _run(cmd: list[str], *, timeout: int = 8) -> tuple[int, str, str]:
     try:
         r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
         return r.returncode, (r.stdout or "").strip(), (r.stderr or "").strip()
@@ -365,17 +364,19 @@ def _do_reboot():
     if not config.ALLOW_POWER_ACTIONS:
         log.add("SYSTEM: reboot blockiert (ALLOW_POWER_ACTIONS=0)")
         return
-    log.add("SYSTEM: reboot ausgelöst")
-    subprocess.Popen(["systemctl", "reboot"])
 
+    log.add("SYSTEM: reboot angefordert")
+    rc, out, err = _run(["sudo", "-n", "systemctl", "reboot"], timeout=8)
+    log.add(f"SYSTEM: reboot rc={rc} out='{out}' err='{err}'")
 
 def _do_shutdown():
     if not config.ALLOW_POWER_ACTIONS:
         log.add("SYSTEM: shutdown blockiert (ALLOW_POWER_ACTIONS=0)")
         return
-    log.add("SYSTEM: shutdown ausgelöst")
-    subprocess.Popen(["systemctl", "poweroff"])
 
+    log.add("SYSTEM: shutdown angefordert")
+    rc, out, err = _run(["sudo", "-n", "systemctl", "poweroff"], timeout=8)
+    log.add(f"SYSTEM: shutdown rc={rc} out='{out}' err='{err}'")
 
 def command_handler(topic: str, payload: str):
     base = f"{config.MQTT_BASE_TOPIC}/cmd/"

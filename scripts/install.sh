@@ -110,7 +110,7 @@ fi
 # minimal erlaubte Kommandos: start/stop/is-active nur für rtsp-server.service
 TMP_SUDOERS="$(mktemp)"
 cat > "${TMP_SUDOERS}" <<EOF
-${USER_NAME} ALL=(root) NOPASSWD: ${SYSTEMCTL_BIN} start rtsp-server.service, ${SYSTEMCTL_BIN} stop rtsp-server.service, ${SYSTEMCTL_BIN} is-active rtsp-server.service
+${USER_NAME} ALL=(root) NOPASSWD: ${SYSTEMCTL_BIN} start rtsp-server.service, ${SYSTEMCTL_BIN} stop rtsp-server.service, ${SYSTEMCTL_BIN} is-active rtsp-server.service, /usr/bin/systemctl reboot, /usr/bin/systemctl poweroff
 EOF
 
 # Syntax prüfen bevor wir es aktivieren
