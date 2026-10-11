@@ -10,6 +10,7 @@ Ist der Bildschirm aus (also das Relais aus), soll auf dem Panel nichts angezeig
 - RTSP-Stream Anzeige (mpv)
 - Touch-Lock/Unlock (evdev grab/ungrab)
 - Wake via Tastatur
+- Kamera als RTSP-Stream inkl. ONVIF (Profile S) für z. B. UniFi Protect
 - MQTT-Integration inkl. Home Assistant Auto-Discovery (ähnlich TouchKio)
 
 ---
@@ -163,6 +164,22 @@ data:
 
 
 Der Screenshot wird als JPEG auf kiosk/<hostname>/screen/image publiziert und in Home Assistant als Image Entity angezeigt.
+
+## Kamera-Stream / ONVIF (rtsp_server.py)
+
+`rtsp-server.service` stellt die USB-Kamera bereit:
+
+- RTSP: `rtsp://<ip>:8554/stream` (H.264, 1920×1080, 30 fps)
+- ONVIF Device/Media Service: `http://<ip>:8080/onvif/device_service`
+- Snapshot: `http://<ip>:8080/snapshot.jpg` (nur solange ein Stream läuft)
+- WS-Discovery (UDP 3702): Kamera wird z. B. von UniFi Protect automatisch gefunden
+
+Einstellungen in `.env`:
+
+ONVIF_USERNAME / ONVIF_PASSWORD → Zugangsdaten für die Übernahme (ohne Passwort bleibt ONVIF aus, RTSP läuft weiter)
+ONVIF_DEVICE_NAME → angezeigter Name (leer = Hostname)
+ONVIF_AUTH_REQUIRED=0 → ONVIF ohne Anmeldung (nur zum Testen)
+RTSP_AUTH=1 → RTSP verlangt dieselben Zugangsdaten
 
 RTSP Modes
 
